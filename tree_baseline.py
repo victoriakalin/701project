@@ -100,7 +100,7 @@ def run_treeClassifier(train_X_fp = "train_X.pickle", test_fp = "test_set.csv.pi
     optorderedfeatureimportances = {k: v for k, v in sorted(optfeatureimportances.items(), key=lambda item: item[1], reverse = True)}
     for pair in optorderedfeatureimportances.items():
         optfimpstring = optfimpstring + "%s: %f\n" % (pair[0], pair[1])    
-    writeFile("optfimp.txt", fimpstring)
+    writeFile("optfimp.txt", optfimpstring)
 
 
     # Plot of Training and Validation Errors during Max_Depth Parameter Tuning
