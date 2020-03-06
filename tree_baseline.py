@@ -1,8 +1,4 @@
 
-
-# NOTE: EDIT PATHNAMES IN CODE BELOW APPROPRIATELY FOR YOU
-
-
 import pandas as pd
 import sklearn as sk
 from sklearn.tree import DecisionTreeClassifier
