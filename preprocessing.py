@@ -7,8 +7,8 @@ from sklearn import preprocessing
 
 
 T_F_COLS = ['school_charter', 'school_magnet', 'school_year_round', 'school_nlns',
-       'school_kipp', 'school_charter_ready_promise','teacher_teach_for_america', 'teacher_ny_teaching_fellow','eligible_double_your_impact_match', 'eligible_almost_home_match']
-CAT_COLS = ['school_state', 'school_metro', 'primary_focus_subject', 'primary_focus_area', 'resource_type', 'poverty_level', 'grade_level']
+       'school_kipp', 'school_charter_ready_promise','teacher_teach_for_america', 'teacher_ny_teaching_fellow','eligible_double_your_impact_match', 'eligible_almost_home_match', "high_poverty"]
+CAT_COLS = ['school_state', 'school_metro', 'primary_focus_subject', 'primary_focus_area', 'resource_type', 'grade_level']
 
 def make_data(projects_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose/projects.csv", outcomes_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose/outcomes.csv"):
     projects = pd.read_csv(projects_fp)
@@ -27,8 +27,12 @@ def make_data(projects_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose
                  'eligible_double_your_impact_match', 'eligible_almost_home_match']]
     print(total['teacher_prefix'].unique())
     # print(1/0)
+    # Make Teacher Gender
     total = total.replace({"Mrs.": 1, "Mr.": 0, "Ms.": 1, "Mr. & Mrs.":float("nan"), "Dr.":float("nan")})
     total = total.rename(columns = {"teacher_prefix":"teacher_gender"})
+    # Make Income Level
+    total = total.replace({"highest poverty": 1, "high poverty": 1, "moderate poverty": 0, "low poverty":0})
+    total = total.rename(columns = {"poverty_level":"high_poverty"})
     # print(total['teacher_gender'])
     total = pd.get_dummies(total, columns=CAT_COLS)
     print(total['fully_funded'].notna())
