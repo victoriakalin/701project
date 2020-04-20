@@ -8,13 +8,25 @@ from sklearn import preprocessing
 
 T_F_COLS = ['school_charter', 'school_magnet', 'school_year_round', 'school_nlns',
        'school_kipp', 'school_charter_ready_promise','teacher_teach_for_america', 'teacher_ny_teaching_fellow','eligible_double_your_impact_match', 'eligible_almost_home_match', "high_poverty"]
-CAT_COLS = ['school_state', 'school_metro', 'primary_focus_subject', 'primary_focus_area', 'resource_type', 'grade_level']
+CAT_COLS = ['school_state', 'school_metro', 'primary_focus_subject', 'primary_focus_area', 'resource_type', 'grade_level'] #, 'poverty_level']
 
-def make_data(projects_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose/projects.csv", outcomes_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose/outcomes.csv"):
+def make_data(projects_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose/projects.csv",
+              outcomes_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose/outcomes.csv",
+              essays_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose/essays.csv"):
     projects = pd.read_csv(projects_fp)
+    essays = pd.read_csv(essays_fp)
+    essays["has_essay"] = 1
+    essays = essays.drop( columns = ['teacher_acctid', 'title', 'short_description',
+       'need_statement', 'essay'])
+    # print("ESSYA COLS: ", essays.columns)
+    # print("# COLS:", len(projects.columns))
     outcomes = pd.read_csv(outcomes_fp)
     # print(outcomes.columns)
     # print(projects.columns)
+    # print("PROJ ROWS:", projects.shape[0])
+    projects = pd.merge(projects, essays, on = "projectid", how = "left")
+    # print("PROJ ROWS:", projects.shape[0])
+    # print("Project  COLS: ", projects.columns)
     total = pd.merge(projects, outcomes, on = "projectid", how = "outer")
     total = total[['fully_funded','school_latitude', 'school_longitude', 'school_state',
                  'school_metro', 'school_charter', 'school_magnet', 'school_year_round', 'school_nlns',
