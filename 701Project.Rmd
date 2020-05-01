@@ -2,54 +2,500 @@
 title: "701Project"
 author: "Victoria Kalinovich"
 date: "3/3/2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
+
+## Final Analysis 
+
+
+```{r}
+library(dplyr)
+test_project_id = read_csv("test.csv")
+
+predictions = read_csv("final_test_preds.csv", col_names = FALSE)
+predictions$index = test$X1
+test_project_id$prediction = predictions$X1
+
+test_project_id = test_project_id[,] 
+
+head(test_project_id[order(test_project_id$prediction),c("title", "projectid", "teacher_gender", "high_poverty", "prediction")])
+
+test_project_id 
+
+```
 
 ```{r setup, include=FALSE}
 library(tidyverse)
 
-outcomes = read_csv("outcomes.csv")
-project = read_csv("projects.csv")
+#outcomes = read_csv("outcomes.csv")
+#project = read_csv("projects.csv")
 
-head(project)
-head(outcomes)
+#head(project)
+#head(outcomes)
 ```
 
 
 ```{r}
-nrow(outcomes)
-nrow(project)
+#nrow(outcomes)
+#nrow(project)
 
-merged = merge(project, outcomes, by = "projectid", all = TRUE)
-nrow(merged)
+#merged = merge(project, outcomes, by = "projectid", all = TRUE)
+#nrow(merged)
 
-test = merged[which(is.na(merged$fully_funded)),]
-train = merged[which(!is.na(merged$fully_funded)),]
+#test = merged[which(is.na(merged$fully_funded)),]
+#train = merged[which(!is.na(merged$fully_funded)),]
 
-nrow(test)
-nrow(train)
+#nrow(test)
+#nrow(train)
 
-head(train)
+#head(train)
 ```
 
 
 
-## R Markdown
+```{r}
+library(tidyverse)
+library(caret)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+valid = read_csv("full_valid.csv")
 
-```{r cars}
-summary(cars)
+coeffs = read_csv("coefficents.csv")
+
+
+valid_y = read_csv("y_valid.csv", col_names = FALSE)
+valid_pred = read_csv("y_valid_pred.csv", col_names = FALSE)
+
+labels = colnames(train)[2:(length(colnames(train))-3)]
+train = read_csv("full_train.csv")
+madhurir_315_theme <- theme_minimal() + theme(text = element_text(size = 14, color = "darkred"),  axis.text = element_text(size = 12, color = "darkblue"))
+
+
+valid$y = valid_y$X1
+valid$y_hat = valid_pred$X1
+# num_ff = sum(train$y)
+# num_nf = sum(train$y == 0)
+
+# num_ff / (num_nf + num_ff)
+# train$y_logreg = train_y$fully_funded
+
+# train$y_logreg
+
+# table(train$high_poverty,train$y)
 ```
 
-## Including Plots
+```{r}
+high_pov = sum(which(train$high_poverty > 0))
+not_high_pov = sum(which(train$high_poverty < 0))
+cat("Number of high poverty projects:", high_pov, "\n")
+cat("Number of low poverty projects:",not_high_pov, "\n")
+cat("Number of high poverty projects - low poverty:",high_pov - not_high_pov, "\n")
 
-You can also embed plots, for example:
+high_pov_val = sum(which(valid$high_poverty > 0))
+not_high_pov_val = sum(which(valid$high_poverty < 0))
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+
+cat("Total Number of high poverty projects:", high_pov + high_pov_val, "\n")
+cat("Number of low poverty projects:",not_high_pov + not_high_pov_val, "\n")
+cat("Number of high poverty projects - low poverty:",(high_pov + high_pov_val) - (not_high_pov + not_high_pov_val), "\n")
+
+
+
+
+female = sum(which(train$teacher_gender > 0))
+male = sum(which(train$teacher_gender < 0))
+cat("Number of projects with female teachers:", female, "\n")
+cat("Number of male teacher projects:", male , "\n")
+cat("Number of male minus female proejcts: ", female - male)
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Train Overall confusion matrix
+```{r}
+conf_mat_train = confusionMatrix(factor(train$y), factor(train$y_hat))$table
+conf_mat_train
+FP = conf_mat_train[2,1]
+TN = conf_mat_train[1,1]
+
+TP = conf_mat_train[2,2]
+FN = conf_mat_train[1,2]
+
+FPR = FP / (FP + TN)
+cat("FPR:", FPR, "\n")
+cat("accuracy:", (TP + TN) / (TP + TN + FN + FP))
+
+
+```
+
+## Validation Overall confusion matrix
+```{r}
+conf_mat = confusionMatrix(factor(valid$y), factor(valid$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+TP = conf_mat[2,2]
+FN = conf_mat[1,2]
+
+FPR = FP / (FP + TN)
+cat("FPR:", FPR, "\n")
+cat("error:", (FP + FN) / (TP + TN + FN + FP))
+
+
+```
+
+```{r}
+confusionMatrix(factor(valid$y), factor(valid$y_hat))
+
+
+```
+
+## Teacher Gender Confusion Matrix 
+
+```{r}
+## Female or gender = 0
+train_f = train[which(train$teacher_gender < 0),]
+conf_mat = confusionMatrix(factor(train_f$y), factor(train_f$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+rm(train_f)
+```
+
+
+```{r}
+## Male or gender = 1
+train_m = train[which(train$teacher_gender > 0),]
+conf_mat = confusionMatrix(factor(train_m$y), factor(train_m$y_hat))$table
+
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+rm(train_m)
+```
+
+
+## Urban / Rural / Suburban
+
+```{r}
+## rural
+train_rural = train[which(train$school_metro_rural > 0),]
+conf_mat = confusionMatrix(factor(train_rural$y), factor(train_rural$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+rm(train_rural)
+```
+
+```{r}
+## urban
+train_urban = train[which(train$school_metro_urban > 0),]
+conf_mat = confusionMatrix(factor(train_urban$y), factor(train_urban$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+rm(train_urban)
+```
+
+```{r}
+## suburban
+train_suburban = train[which(train$school_metro_suburban > 0),]
+conf_mat = confusionMatrix(factor(train_suburban$y), factor(train_suburban$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+
+```
+
+## Teacher Gender Confusion Matrix Train
+
+```{r}
+## Female or gender = 0
+train_f = train[which(train$teacher_gender == 0),]
+conf_mat = confusionMatrix(factor(train_f$y), factor(train_f$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+
+```
+
+
+```{r}
+## Male or gender = 1
+train_m = train[which(train$teacher_gender == 1),]
+conf_mat = confusionMatrix(factor(train_m$y), factor(train_m$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+
+```
+
+
+## Teacher Gender Confusion Matrix Valid
+
+```{r}
+## Female or gender = 0
+train_f_val = valid[which(valid$teacher_gender >  0),]
+conf_mat = confusionMatrix(factor(train_f_val$y), factor(train_f_val$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+
+```
+
+
+```{r}
+## Male or gender = 1
+train_m_val = valid[which(valid$teacher_gender < 0),]
+conf_mat = confusionMatrix(factor(train_m_val$y), factor(train_m_val$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+
+```
+
+
+
+
+
+
+
+## Train Poverty Level 
+
+```{r}
+## high pov
+train_high = train[which(train$high_poverty > 0),]
+conf_mat = confusionMatrix(factor(train_high$y), 
+                           factor(train_high$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+
+```
+
+```{r}
+## not high pov
+train_nothigh = train[which(train$high_poverty < 0),]
+conf_mat = confusionMatrix(factor(train_nothigh$y), 
+                           factor(train_nothigh$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+
+```
+
+
+## Valid Poverty Level 
+
+```{r}
+## high pov
+valid_high = valid[which(valid$high_poverty > 0),]
+conf_mat = confusionMatrix(factor(valid_high$y), 
+                           factor(valid_high$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+TP = conf_mat[2,2]
+FN = conf_mat[1,2]
+
+FPR = FP / (FP + TN)
+cat("FPR:", FPR, "\n")
+cat("accuracty:", (TP + TN) / (TP + TN + FN + FP))
+
+
+```
+
+```{r}
+## not high pov
+valid_nothigh = valid[which(valid$high_poverty < 0),]
+conf_mat = confusionMatrix(factor(valid_nothigh$y), 
+                           factor(valid_nothigh$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+
+TP = conf_mat[2,2]
+FN = conf_mat[1,2]
+
+FPR = FP / (FP + TN)
+cat("FPR:", FPR, "\n")
+cat("error:", (FP + FN) / (TP + TN + FN + FP))
+
+
+```
+
+
+# Neural Net Analysis 
+
+```{r}
+library(tidyverse)
+library(caret)
+# train_y = read_csv("train_y.csv")
+# valid_y = read_csv("y_valid.csv")
+
+# train_nn = read_csv("full_train_nn.csv")
+valid_nn = read_csv("full_valid_nn_SMOTE_ESSAY.csv")
+
+# train_nn_y = read_csv("nn_y_train_smote.csv", col_names = FALSE)
+valid_nn_y = read_csv("nn_y_valid_SMOTE_ESSAY.csv", col_names = FALSE)
+
+nn_pred_valid = read_csv("nnpred_valid_NEWLOSS_SMOTE.csv", col_names = FALSE)
+# nn_pred_train = read_csv("nnpred_train1.csv", col_names = FALSE)
+
+# train_nn$y = train_nn_y$X1
+valid_nn$y = valid_nn_y$X1
+
+
+
+
+# train_nn$y_hat = ifelse(nn_pred_train$X1 > .5, 1, 0)
+valid_nn$y_hat = ifelse(nn_pred_valid$X1 > .5, 1, 0)
+
+
+
+
+```
+
+
+## Validation Overall confusion matrix
+```{r}
+conf_mat = confusionMatrix(factor(valid_nn$y), factor(valid_nn$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+TP = conf_mat[2,2]
+FN = conf_mat[1,2]
+
+FPR = FP / (FP + TN)
+cat("FPR:", FPR, "\n")
+cat("error:", (FP + FN) / (TP + TN + FN + FP))
+
+nrow(valid_nn)
+conf_mat
+```
+```{r}
+24751/ nrow(valid_nn)
+
+```
+
+## Valid Poverty Level 
+
+```{r}
+## high pov
+valid_high_nn = valid_nn[which(valid_nn$high_poverty > 0),]
+conf_mat = confusionMatrix(factor(valid_high_nn$y), 
+                           factor(valid_high_nn$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+TP = conf_mat[2,2]
+FN = conf_mat[1,2]
+
+FPR = FP / (FP + TN)
+cat("FPR:", FPR, "\n")
+cat("error:", (FP + FN) / (TP + TN + FN + FP))
+
+
+```
+
+```{r}
+## not high pov
+valid_nothigh_nn = valid_nn[which(valid_nn$high_poverty < 0),]
+conf_mat = confusionMatrix(factor(valid_nothigh_nn$y), 
+                           factor(valid_nothigh_nn$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+
+TP = conf_mat[2,2]
+FN = conf_mat[1,2]
+
+FPR = FP / (FP + TN)
+cat("FPR:", FPR, "\n")
+cat("error:", (FP + FN) / (TP + TN + FN + FP))
+
+
+```
+
+
+
+## Teacher Gender Confusion Matrix Valid
+
+```{r}
+## Female or gender = 0
+train_f_val_nn = valid_nn[which(valid_nn$teacher_gender >  0),]
+conf_mat = confusionMatrix(factor(train_f_val_nn$y), factor(train_f_val_nn$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+cat("error:", (FP + FN) / (TP + TN + FN + FP))
+
+```
+
+
+```{r}
+## Male or gender = 1
+train_m_val_nn = valid_nn[which(valid_nn$teacher_gender < 0),]
+conf_mat = confusionMatrix(factor(train_m_val_nn$y), factor(train_m_val_nn$y_hat))$table
+conf_mat
+FP = conf_mat[2,1]
+TN = conf_mat[1,1]
+
+FPR = FP / (FP + TN)
+print(FPR)
+cat("error:", (FP + FN) / (TP + TN + FN + FP))
+```
+
+
+# CNN Analysis
+
+```{r}
+library(tidyverse)
+cnn_valid = read_csv("validX.csv", col_names = FALSE)
+head(cnn_valid)
+ncol(cnn_valid)
+```
