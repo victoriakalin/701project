@@ -1,3 +1,7 @@
+# References used:
+# https://towardsdatascience.com/scikit-learn-decision-trees-explained-803f3812290d
+# scikit-learn DecisionTreeClassifier documentation:
+#   https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html
 
 import pandas as pd
 import sklearn as sk
@@ -7,7 +11,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-
+import math 
 
 np.random.seed(819)
 
@@ -17,11 +21,12 @@ def writeFile(path, contents):
         f.write(contents)
 
 
-def run_treeClassifier(train_X_fp = "train_X.pickle", test_fp = "test_set.csv.pickle", train_y_fp = "train_y_set.pickle"):
+def run_treeClassifier(train_X_fp = "/Users/madhuri/Desktop/10701/project/mylocalcode/train_X_smoteESSAY.pickle", test_fp = "test_set.csv.pickle", train_y_fp = "/Users/madhuri/Desktop/10701/project/mylocalcode/train_y_smoteESSAY.pickle"):
     train_X = pd.read_pickle(train_X_fp)
     train_y = pd.read_pickle(train_y_fp)
     test = pd.read_pickle(test_fp) 
     train_X_new, valid_X_new, train_y_new, valid_y_new = train_test_split(train_X, train_y, test_size = 0.20)
+    train_X_new = pd.DataFrame(train_X_new)
 
     # Model based on Train Data 
 
@@ -41,7 +46,7 @@ def run_treeClassifier(train_X_fp = "train_X.pickle", test_fp = "test_set.csv.pi
 
 
 
-    # Depth of our fully grown tree? Should be 62 with seed(819)
+    # Depth of our fully grown tree?
 
     full_depth = treeCl.get_depth()
     print("Fully grown depth: ", full_depth)
@@ -49,20 +54,21 @@ def run_treeClassifier(train_X_fp = "train_X.pickle", test_fp = "test_set.csv.pi
 
     # Feature importance of the full_depth tree
 
-    featureimportances = dict(zip(train_X_new.columns, treeCl.feature_importances_))
-    fimpstring = "Full Depth Tree Feature Importances: \n"
-    orderedfeatureimportances = {k: v for k, v in sorted(featureimportances.items(), key=lambda item: item[1], reverse = True)}
-    for pair in orderedfeatureimportances.items():
-        fimpstring = fimpstring + "%s: %f\n" % (pair[0], pair[1])    
-    writeFile("fimp.txt", fimpstring)
-
+    # featureimportances = dict(zip(train_X_new.columns, treeCl.feature_importances_))
+    # fimpstring = "Full Depth Tree Feature Importances: \n"
+    # orderedfeatureimportances = {k: v for k, v in sorted(featureimportances.items(), key=lambda item: item[1], reverse = True)}
+    # for pair in orderedfeatureimportances.items():
+    #     fimpstring = fimpstring + "%s: %f\n" % (pair[0], pair[1])    
+    # writeFile("fimp.txt", fimpstring)
+    # print("wrote fimp.txt")
 
     # Tuning for optimal tree max depth we should use
 
     trying_max_depths = list(range(full_depth))
     trainaccuracies = list()
     validaccuracies = list()
-    for d in (trying_max_depths[1:]):
+    for d in (trying_max_depths[1:math.floor(full_depth*0.5)]):
+        print("currently on depth: %d" % d)
         treeCl_d = DecisionTreeClassifier(max_depth=d, random_state=819).fit(train_X_new, train_y_new)
         trainaccuracies.append(treeCl_d.score(train_X_new, train_y_new))
         validaccuracies.append(treeCl_d.score(valid_X_new, valid_y_new))
@@ -70,11 +76,11 @@ def run_treeClassifier(train_X_fp = "train_X.pickle", test_fp = "test_set.csv.pi
     optimal_depth_index = errors.index(min(errors))
     optimal_depth = trying_max_depths[optimal_depth_index]
     print("Optimal max depth: ", optimal_depth)
-
+    
 
     # New Model for Tree with Optimal Max depth:
 
-    optTreeCl = DecisionTreeClassifier(random_state=819, max_depth = optimal_depth).fit(train_X_new, train_y_new)
+    optTreeCl = DecisionTreeClassifier(random_state=819, max_depth = optimal_depth).fit(train_X_new, train_y_new) ######################################
      
 
     # Predict on Train set and Validation set
@@ -96,16 +102,17 @@ def run_treeClassifier(train_X_fp = "train_X.pickle", test_fp = "test_set.csv.pi
     optorderedfeatureimportances = {k: v for k, v in sorted(optfeatureimportances.items(), key=lambda item: item[1], reverse = True)}
     for pair in optorderedfeatureimportances.items():
         optfimpstring = optfimpstring + "%s: %f\n" % (pair[0], pair[1])    
-    writeFile("optfimp.txt", optfimpstring)
+    writeFile("tree_optfimp.txt", optfimpstring)
+    print("wrote optfimp.txt")
 
 
     # Plot of Training and Validation Errors during Max_Depth Parameter Tuning
 
-    plt.plot(trying_max_depths[1:], [1-x for x in trainaccuracies], label = "Training Error")
+    plt.plot(trying_max_depths[1:math.floor(full_depth*0.5)], [1-x for x in trainaccuracies], label = "Training Error")
     plt.title('Tuning Decision Tree Max Depth')
     plt.xlabel('Max_depth of Decison Tree Classifier')
     plt.ylabel('ERROR RATE')
-    plt.plot(trying_max_depths[1:], [1-x for x in validaccuracies], label = "Validation Error")
+    plt.plot(trying_max_depths[1:math.floor(full_depth*0.5)], [1-x for x in validaccuracies], label = "Validation Error")
     plt.xlabel('Max_depth of Decison Tree Classifier')
     plt.legend()
     plt.show()
@@ -113,5 +120,3 @@ def run_treeClassifier(train_X_fp = "train_X.pickle", test_fp = "test_set.csv.pi
 
     
 run_treeClassifier()
-
-
