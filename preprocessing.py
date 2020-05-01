@@ -16,8 +16,8 @@ def make_data(projects_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose
     projects = pd.read_csv(projects_fp)
     essays = pd.read_csv(essays_fp)
     essays["has_essay"] = 1
-    essays = essays.drop( columns = ['teacher_acctid', 'title', 'short_description',
-       'need_statement', 'essay'])
+    # essays = essays.drop( columns = ['teacher_acctid', 'title', 'short_description',
+    #    'need_statement', 'essay'])
     # print("ESSYA COLS: ", essays.columns)
     # print("# COLS:", len(projects.columns))
     outcomes = pd.read_csv(outcomes_fp)
@@ -28,34 +28,47 @@ def make_data(projects_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose
     # print("PROJ ROWS:", projects.shape[0])
     # print("Project  COLS: ", projects.columns)
     total = pd.merge(projects, outcomes, on = "projectid", how = "outer")
-    total = total[['fully_funded','school_latitude', 'school_longitude', 'school_state',
-                 'school_metro', 'school_charter', 'school_magnet', 'school_year_round', 'school_nlns',
-                 'school_kipp', 'school_charter_ready_promise', 'teacher_prefix',
-                 'teacher_teach_for_america', 'teacher_ny_teaching_fellow',
-                 'primary_focus_subject', 'primary_focus_area', 'resource_type',
-                 'poverty_level', 'grade_level', 'fulfillment_labor_materials',
-                 'total_price_excluding_optional_support',
-                 'total_price_including_optional_support', 'students_reached',
-                 'eligible_double_your_impact_match', 'eligible_almost_home_match']]
-    print(total['teacher_prefix'].unique())
-    # print(1/0)
+    # total = total[['projectid', 'fully_funded','school_latitude', 'school_longitude',
+    #              'school_charter', 'school_magnet', 'school_year_round', 'school_nlns',
+    #              'school_kipp', 'school_charter_ready_promise', 'teacher_prefix',
+    #              'teacher_teach_for_america', 'teacher_ny_teaching_fellow',
+    #              'primary_focus_subject', 'primary_focus_area', 'resource_type',
+    #              'poverty_level', 'grade_level', 'fulfillment_labor_materials',
+    #              'total_price_excluding_optional_support',
+    #              'total_price_including_optional_support', 'students_reached',
+    #              'eligible_double_your_impact_match', 'eligible_almost_home_match','school_state', 'school_metro', 'has_essay']]
+    # print(total['teacher_prefix'].unique())
     # Make Teacher Gender
+    print(total.columns)
     total = total.replace({"Mrs.": 1, "Mr.": 0, "Ms.": 1, "Mr. & Mrs.":float("nan"), "Dr.":float("nan")})
     total = total.rename(columns = {"teacher_prefix":"teacher_gender"})
     # Make Income Level
     total = total.replace({"highest poverty": 1, "high poverty": 1, "moderate poverty": 0, "low poverty":0})
     total = total.rename(columns = {"poverty_level":"high_poverty"})
     # print(total['teacher_gender'])
-    total = pd.get_dummies(total, columns=CAT_COLS)
     print(total['fully_funded'].notna())
-    train = total[total['fully_funded'].notna()]
-    train = train.replace({"t":1, "f":0})
+    total = total[['fully_funded', 'title', "projectid",'school_latitude', 'school_longitude',
+                 'school_charter', 'school_magnet', 'school_year_round', 'school_nlns',
+                 'school_kipp', 'school_charter_ready_promise', 'teacher_gender',
+                 'teacher_teach_for_america', 'teacher_ny_teaching_fellow',
+                 'primary_focus_subject', 'primary_focus_area', 'resource_type',
+                 'high_poverty', 'grade_level', 'fulfillment_labor_materials',
+                 'total_price_excluding_optional_support',
+                 'total_price_including_optional_support', 'students_reached',
+                 'eligible_double_your_impact_match', 'eligible_almost_home_match','school_state', 'school_metro', 'has_essay']]
+    total = pd.get_dummies(total, columns=CAT_COLS)
+
+    train_X = total[total['fully_funded'].notna()]
+    train_X = train_X.replace({"t":1, "f":0})
     test = total[total['fully_funded'].isna()]
     test = test.replace({"t":1, "f":0})
-    test = test.drop(['fully_funded'], axis = 1)
-    train = train.dropna()
-    train_y = train[['fully_funded']]
-    train_X = train.drop(['fully_funded'], axis = 1)
+
+    test.dropna()
+    train_X = train_X.dropna()
+    train_y = train_X[['fully_funded']]
+    train_X = train_X.drop(["fully_funded", "projectid", "title"], axis = 1)
+
+
     print("DOne")
     print(train_X.head())
     print(train_X.columns)
@@ -64,13 +77,13 @@ def make_data(projects_fp = "kdd-cup-2014-predicting-excitement-at-donors-choose
     return test, train_X, train_y
 
 
-test, train_X, train_y= make_data()
+test, train_X, train_y = make_data()
 print(np.shape(test))
 print(np.shape(train_X))
 print(np.shape(train_y))
 
 print("returned")
-with open('test_set.csv.pickle', 'wb') as f:
+with open('test_set.pickle', 'wb') as f:
     pickle.dump(test, f)
 print("wrote test")
 with open('train_X.pickle', 'wb') as f:
